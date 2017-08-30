@@ -29,7 +29,8 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            this.tabControl = new Wisder.W3Common.WMetroControl.Controls.MetroTabControl();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
+            this.tabControl = new 远程桌面管理器.DraggableMetroTabControl();
             this.pageManage = new System.Windows.Forms.TabPage();
             this.panelBody = new System.Windows.Forms.Panel();
             this.panelSetting = new Wisder.W3Common.WMetroControl.Controls.MetroPanel();
@@ -69,8 +70,10 @@
             this.tabControl.Size = new System.Drawing.Size(756, 402);
             this.tabControl.TabIndex = 0;
             this.tabControl.UseSelectable = true;
+            this.tabControl.DragDone += TabControl_DragDone;
             this.tabControl.DoubleClick += new System.EventHandler(this.tabControl_DoubleClick);
             this.tabControl.MouseDown += new System.Windows.Forms.MouseEventHandler(this.tabControl_MouseDown);
+            this.tabControl.GiveFeedback += Drag.UpdataCursor;
             // 
             // pageManage
             // 
@@ -169,6 +172,7 @@
             this.btnSetStyle.Size = new System.Drawing.Size(118, 34);
             this.btnSetStyle.TabIndex = 4;
             this.btnSetStyle.Text = "切换主题[15/15]";
+            this.btnSetStyle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.btnSetStyle.UseSelectable = true;
             this.btnSetStyle.UseVisualStyleBackColor = true;
             this.btnSetStyle.Click += new System.EventHandler(this.btnSetStyle_Click);
@@ -181,26 +185,26 @@
             this.独立窗口ToolStripMenuItem});
             this.menuTabPage.Name = "menu";
             this.menuTabPage.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
-            this.menuTabPage.Size = new System.Drawing.Size(123, 70);
+            this.menuTabPage.Size = new System.Drawing.Size(125, 70);
             // 
             // 关闭ToolStripMenuItem
             // 
             this.关闭ToolStripMenuItem.Name = "关闭ToolStripMenuItem";
-            this.关闭ToolStripMenuItem.Size = new System.Drawing.Size(122, 22);
+            this.关闭ToolStripMenuItem.Size = new System.Drawing.Size(124, 22);
             this.关闭ToolStripMenuItem.Text = "关闭";
             this.关闭ToolStripMenuItem.Click += new System.EventHandler(this.关闭ToolStripMenuItem_Click);
             // 
             // 全屏ToolStripMenuItem
             // 
             this.全屏ToolStripMenuItem.Name = "全屏ToolStripMenuItem";
-            this.全屏ToolStripMenuItem.Size = new System.Drawing.Size(122, 22);
+            this.全屏ToolStripMenuItem.Size = new System.Drawing.Size(124, 22);
             this.全屏ToolStripMenuItem.Text = "全屏";
             this.全屏ToolStripMenuItem.Click += new System.EventHandler(this.全屏ToolStripMenuItem_Click);
             // 
             // 独立窗口ToolStripMenuItem
             // 
             this.独立窗口ToolStripMenuItem.Name = "独立窗口ToolStripMenuItem";
-            this.独立窗口ToolStripMenuItem.Size = new System.Drawing.Size(122, 22);
+            this.独立窗口ToolStripMenuItem.Size = new System.Drawing.Size(124, 22);
             this.独立窗口ToolStripMenuItem.Text = "独立窗口";
             this.独立窗口ToolStripMenuItem.Click += new System.EventHandler(this.独立窗口ToolStripMenuItem_Click);
             // 
@@ -215,12 +219,12 @@
             this.删除ToolStripMenuItem});
             this.menuTitle.Name = "menu";
             this.menuTitle.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
-            this.menuTitle.Size = new System.Drawing.Size(99, 48);
+            this.menuTitle.Size = new System.Drawing.Size(101, 48);
             // 
             // 编辑ToolStripMenuItem
             // 
             this.编辑ToolStripMenuItem.Name = "编辑ToolStripMenuItem";
-            this.编辑ToolStripMenuItem.Size = new System.Drawing.Size(98, 22);
+            this.编辑ToolStripMenuItem.Size = new System.Drawing.Size(100, 22);
             this.编辑ToolStripMenuItem.Text = "编辑";
             this.编辑ToolStripMenuItem.Click += new System.EventHandler(this.编辑ToolStripMenuItem_Click);
             // 
@@ -230,20 +234,20 @@
             this.确认无误删除ToolStripMenuItem,
             this.连同父级一起删除ToolStripMenuItem});
             this.删除ToolStripMenuItem.Name = "删除ToolStripMenuItem";
-            this.删除ToolStripMenuItem.Size = new System.Drawing.Size(98, 22);
+            this.删除ToolStripMenuItem.Size = new System.Drawing.Size(100, 22);
             this.删除ToolStripMenuItem.Text = "删除";
             // 
             // 确认无误删除ToolStripMenuItem
             // 
             this.确认无误删除ToolStripMenuItem.Name = "确认无误删除ToolStripMenuItem";
-            this.确认无误删除ToolStripMenuItem.Size = new System.Drawing.Size(170, 22);
+            this.确认无误删除ToolStripMenuItem.Size = new System.Drawing.Size(172, 22);
             this.确认无误删除ToolStripMenuItem.Text = "确认无误，删除！";
             this.确认无误删除ToolStripMenuItem.Click += new System.EventHandler(this.确认无误删除ToolStripMenuItem_Click);
             // 
             // 连同父级一起删除ToolStripMenuItem
             // 
             this.连同父级一起删除ToolStripMenuItem.Name = "连同父级一起删除ToolStripMenuItem";
-            this.连同父级一起删除ToolStripMenuItem.Size = new System.Drawing.Size(170, 22);
+            this.连同父级一起删除ToolStripMenuItem.Size = new System.Drawing.Size(172, 22);
             this.连同父级一起删除ToolStripMenuItem.Text = "连同父级一起删除";
             this.连同父级一起删除ToolStripMenuItem.Click += new System.EventHandler(this.连同父级一起删除ToolStripMenuItem_Click);
             // 
@@ -251,12 +255,15 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackLocation = Wisder.W3Common.WMetroControl.Forms.BackLocation.TopLeft;
+            this.BorderStyle = Wisder.W3Common.WMetroControl.Forms.MetroFormBorderStyle.None;
             this.ClientSize = new System.Drawing.Size(796, 482);
             this.Controls.Add(this.tabControl);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "MainForm";
+            this.ShadowType = Wisder.W3Common.WMetroControl.Forms.MetroFormShadowType.Flat;
             this.Style = Wisder.W3Common.WMetroControl.MetroColorStyle.Default;
             this.Text = "远程桌面管理";
-            this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.MouseLeave += new System.EventHandler(this.MainForm_MouseLeave);
             this.tabControl.ResumeLayout(false);
@@ -270,8 +277,6 @@
         }
 
         #endregion
-
-        private Wisder.W3Common.WMetroControl.Controls.MetroTabControl tabControl;
         private System.Windows.Forms.TabPage pageManage;
         private System.Windows.Forms.ContextMenuStrip menuTabPage;
         private System.Windows.Forms.ToolStripMenuItem 关闭ToolStripMenuItem;
@@ -290,6 +295,7 @@
         private System.Windows.Forms.ToolStripMenuItem 确认无误删除ToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem 连同父级一起删除ToolStripMenuItem;
         private Wisder.W3Common.WMetroControl.Controls.MetroLink btnClear;
+        private DraggableMetroTabControl tabControl;
     }
 }
 

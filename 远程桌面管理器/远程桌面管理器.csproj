@@ -26,7 +26,7 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
+    <PlatformTarget>x86</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -45,6 +45,7 @@
     </Reference>
     <Reference Include="MsTscAxWrapper">
       <HintPath>D:\个人习惯\工具\经验\自己的测试\测试远程桌面\WindowsFormsApplication1\bin\Debug\MsTscAxWrapper.dll</HintPath>
+      <Aliases>wrapper</Aliases>
     </Reference>
     <Reference Include="MSTSCLib">
       <HintPath>D:\个人习惯\工具\经验\自己的测试\测试远程桌面\WindowsFormsApplication1\bin\Debug\MSTSCLib.dll</HintPath>
@@ -71,11 +72,21 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common.cs" />
+    <Compile Include="CursorUtil.cs" />
     <Compile Include="db.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>db.resx</DependentUpon>
     </Compile>
+    <Compile Include="Drag.cs" />
+    <Compile Include="DraggableMetroTabControl.cs" />
+    <Compile Include="FullScreenForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FullScreenForm.Designer.cs">
+      <DependentUpon>FullScreenForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GDI32.cs" />
     <Compile Include="IpAddress.cs" />
     <Compile Include="IpAddressForm.cs">
       <SubType>Form</SubType>
@@ -99,6 +110,7 @@
     </Compile>
     <Compile Include="RemoteHost.cs" />
     <Compile Include="SqliteHelp.cs" />
+    <Compile Include="User32.cs" />
     <Compile Include="WHostGroupBox.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -108,6 +120,9 @@
     <EmbeddedResource Include="db.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>db.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FullScreenForm.resx">
+      <DependentUpon>FullScreenForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="IpAddressForm.resx">
       <DependentUpon>IpAddressForm.cs</DependentUpon>
