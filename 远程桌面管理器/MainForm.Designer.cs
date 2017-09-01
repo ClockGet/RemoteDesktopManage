@@ -264,6 +264,7 @@
             this.ShadowType = Wisder.W3Common.WMetroControl.Forms.MetroFormShadowType.Flat;
             this.Style = Wisder.W3Common.WMetroControl.MetroColorStyle.Default;
             this.Text = "远程桌面管理";
+            this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.MouseLeave += new System.EventHandler(this.MainForm_MouseLeave);
             this.tabControl.ResumeLayout(false);

@@ -1,8 +1,10 @@
-﻿using System;
+﻿using AxMSTSCLib;
+using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using System.ComponentModel;
 
 namespace 远程桌面管理器
 {
@@ -16,6 +18,7 @@ namespace 远程桌面管理器
         {
             InitializeComponent();
         }
+
         /// <summary>  
         /// 设置全屏或这取消全屏  
         /// </summary>  
@@ -26,14 +29,14 @@ namespace 远程桌面管理器
         {
             m_IsFullScreen = fullscreen;
             Rectangle rectOld = Rectangle.Empty;
-            Int32 hwnd = 0;
-            hwnd = FindWindow("Shell_TrayWnd", null);//获取任务栏的句柄
+            //Int32 hwnd = 0;
+            //hwnd = FindWindow("Shell_TrayWnd", null);//获取任务栏的句柄
 
-            if (hwnd == 0) return false;
+            //if (hwnd == 0) return false;
 
             if (fullscreen)//全屏
             {
-                ShowWindow(hwnd, SW_HIDE);//隐藏任务栏
+                //ShowWindow(hwnd, SW_HIDE);//隐藏任务栏
 
                 SystemParametersInfo(SPI_GETWORKAREA, 0, ref rectOld, SPIF_UPDATEINIFILE);//get  屏幕范围
                 Rectangle rectFull = Screen.PrimaryScreen.Bounds;//全屏范围
@@ -41,25 +44,15 @@ namespace 远程桌面管理器
 
                 this.FormBorderStyle = FormBorderStyle.None;
                 this.WindowState = FormWindowState.Maximized;
-                this.Activate();
-                foreach (var control in this.Controls)
-                {
-                    var rdpClient = control as wrapper::AxMSTSCLib.AxMsRdpClient;
-                    if (rdpClient != null)
-                    {
-                        rdpClient.FullScreen = true;
-                    }
-                }
             }
             else//还原 
             {
                 this.WindowState = FormWindowState.Normal;
                 this.FormBorderStyle = FormBorderStyle.Sizable;
 
-                ShowWindow(hwnd, SW_SHOW);//显示任务栏
+                //ShowWindow(hwnd, SW_SHOW);//显示任务栏
 
                 SystemParametersInfo(SPI_SETWORKAREA, 0, ref rectOld, SPIF_UPDATEINIFILE);//窗体还原
-                this.Activate();
             }
             return true;
         }
@@ -86,19 +79,28 @@ namespace 远程桌面管理器
             {
                 m_IsFullScreen = !m_IsFullScreen;
                 SetFormFullScreen(m_IsFullScreen);
+                foreach(var control in this.Controls)
+                {
+                    if (control is AxMsRdpClient7)
+                    {
+                        ((AxMsRdpClient7)control).FullScreen = true;
+                        break;
+                    }
+                }
                 return;
             }
             else if (m.Msg == WM_NCLBUTTONCLK)
             {
                 Point mousePoint = new Point((int)m.LParam);
                 mousePoint.Offset(-this.Left, -this.Top);
-                if(new Rectangle(0,0,32,32).Contains(mousePoint))
+                if (new Rectangle(0, 0, 32, 32).Contains(mousePoint))
                 {
                     var mainForm = this.Owner as MainForm;
-                    if(mainForm!=null)
+                    if (mainForm != null)
                     {
                         mainForm.AttachFromChild(this.Text, this.Controls);
                     }
+                    this.Controls.Clear();
                     this.Close();
                     return;
                 }

@@ -10,6 +10,9 @@ using Dapper;
 using Wisder.W3Common.WMetroControl;
 using Wisder.W3Common.WMetroControl.Controls;
 using Wisder.W3Common.WMetroControl.Forms;
+using MSTSCLib;
+using System.Threading;
+using System.Diagnostics;
 
 namespace 远程桌面管理器
 {
@@ -129,54 +132,142 @@ namespace 远程桌面管理器
             #endregion
 
             #region 2.0 创建远程桌面客户端
-            var rdpClient = new wrapper::AxMSTSCLib.AxMsRdpClient
+            //https://msdn.microsoft.com/en-us/library/ee620996(v=vs.85).aspx
+            var rdpClient = new AxMsRdpClient7
             {
-                Dock = DockStyle.None,
+                Dock = DockStyle.Fill,
                 Width = Screen.PrimaryScreen.Bounds.Width,
-                Height = Screen.PrimaryScreen.Bounds.Height
+                Height=Screen.PrimaryScreen.Bounds.Height
             };
             page.Controls.Add(rdpClient);
-            page.AutoScroll = true;
+            //rdpClient.DesktopWidth = Screen.PrimaryScreen.Bounds.Width;
+            //rdpClient.DesktopHeight = Screen.PrimaryScreen.Bounds.Height;
+            //page.AutoScroll = true;
             rdpClient.Server = ipInfo.FIpAddress;
             rdpClient.UserName = ipInfo.FLoginUser;
 
             if (port > 0) rdpClient.AdvancedSettings2.RDPPort = port;
             rdpClient.AdvancedSettings2.ClearTextPassword = ipInfo.FPassword;
             //偏好设置
-            rdpClient.ColorDepth = 16;
+            rdpClient.ColorDepth = 32;
             rdpClient.ConnectingText = string.Format("正在连接[{0}]，请稍等... {1}",
                 host.FName, ipInfo.FFullUrl);
             #endregion
             rdpClient.OnConfirmClose += RdpClient_OnConfirmClose;
             rdpClient.OnDisconnected += RdpClient_OnDisconnected;
-            rdpClient.OnLeaveFullScreenMode += RdpClient_OnLeaveFullScreenMode;
+            //rdpClient.OnLeaveFullScreenMode += RdpClient_OnLeaveFullScreenMode;
+            rdpClient.OnAuthenticationWarningDisplayed += RdpClient_OnAuthenticationWarningDisplayed;
+            rdpClient.OnRequestLeaveFullScreen += RdpClient_OnLeaveFullScreenMode;
+            rdpClient.OnRequestGoFullScreen += RdpClient_OnRequestGoFullScreen;
+            rdpClient.OnRequestContainerMinimize += RdpClient_OnRequestContainerMinimize;
+            rdpClient.AdvancedSettings8.RedirectDrives = true;//映射驱动器
+            rdpClient.AdvancedSettings8.RedirectPrinters = true;//映射打印机
+            rdpClient.AdvancedSettings8.RedirectClipboard = true;//映射剪贴板
+            rdpClient.AdvancedSettings8.ContainerHandledFullScreen = 1;
+            rdpClient.AdvancedSettings8.ConnectionBarShowRestoreButton = true;
+            rdpClient.AdvancedSettings8.SmartSizing = true;
+            //rdpClient.AdvancedSettings8.ConnectionBarShowMinimizeButton = false;//不显示最小化按钮
+            var settings = (IMsRdpClientNonScriptable5)rdpClient.GetOcx();
+            settings.RedirectDynamicDrives = true;//动态映射驱动器
+            settings.RedirectionWarningType = RedirectionWarningType.RedirectionWarningTypeTrusted;
+            settings.AllowCredentialSaving = true;
+            settings.ShowRedirectionWarningDialog = false;
+            settings.AllowPromptingForCredentials = false;
+            settings.PromptForCredentials = false;
+            settings.PromptForCredsOnClient = false;
+            settings.MarkRdpSettingsSecure = true;
+            settings.NegotiateSecurityLayer = true;
+            settings.WarnAboutClipboardRedirection = false;
+            settings.WarnAboutDirectXRedirection = false;
+            settings.WarnAboutPrinterRedirection = false;
+            settings.WarnAboutSendingCredentials = false;
             //连接远程桌面
             rdpClient.Connect();
+        }
+        #region RdpClient事件
+        private void RdpClient_OnRequestContainerMinimize(object sender, EventArgs e)
+        {
+            var rdpClient = (AxMsRdpClient7)sender;
+            var form = rdpClient.Parent as Form;
+            if (form != null)
+                form.WindowState = FormWindowState.Minimized;
+        }
+        private void RdpClient_OnRequestGoFullScreen(object sender, EventArgs e)
+        {
+            var rdpClient = (AxMsRdpClient7)sender;
+        }
+        /// <summary>
+        /// 根据 https://github.com/meehi/ExtremeRemoteDesktopManager/blob/master/Extreme%20Remote%20Desktop%20Manager/Extreme%20Remote%20Desktop%20Manager/Helper/ConnectHelper.cs
+        /// 防止每次都弹出确认连接的对话框
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void RdpClient_OnAuthenticationWarningDisplayed(object sender, EventArgs e)
+        {
+            SendKeys.Send("{LEFT}");
+            Thread.Sleep(100);
+            SendKeys.Send("{ENTER}");
         }
 
         private void RdpClient_OnLeaveFullScreenMode(object sender, EventArgs e)
         {
             //rdpClient退出全屏时父控件如果是FullScreenForm则也退出全屏
-            var rdpClient = sender as wrapper::AxMSTSCLib.AxMsRdpClient;
+            var rdpClient = sender as AxMsRdpClient7;
             var form = rdpClient.Parent as FullScreenForm;
             if (form != null)
             {
+                //form.FormBorderStyle = FormBorderStyle.Sizable;
                 form.SetFormFullScreen(false);
             }
         }
 
-        private void RdpClient_OnDisconnected(object sender, wrapper::AxMSTSCLib.IMsTscAxEvents_OnDisconnectedEvent e)
+        private void RdpClient_OnDisconnected(object sender, IMsTscAxEvents_OnDisconnectedEvent e)
         {
-            var rdpClient = sender as wrapper::AxMSTSCLib.AxMsRdpClient;
+            var rdpClient = sender as AxMsRdpClient7;
+            if(e.discReason!=0 && e.discReason!=1 && e.discReason!=2 && e.discReason!=3)
+            {
+                if(e.discReason!=2825)
+                    MessageBox.Show(rdpClient.GetErrorDescription((uint)e.discReason, (uint)rdpClient.ExtendedDisconnectReason));
+            }
             rdpClient?.Parent.Dispose();
+            rdpClient.Dispose();
+            CheckAllTabPageState();
         }
-
-        private void RdpClient_OnConfirmClose(object sender, wrapper::AxMSTSCLib.IMsTscAxEvents_OnConfirmCloseEvent e)
+        private void CheckAllTabPageState()
         {
-            var rdpClient = sender as wrapper::AxMSTSCLib.AxMsRdpClient;
+            List<TabPage> list = new List<TabPage>();
+            for(int i=1;i<this.tabControl.TabCount;i++)
+            {
+                var page = tabControl.TabPages[i];
+                bool isDisposed = false;
+                bool isHave = false;
+                foreach(var control in page.Controls)
+                {
+                    if (control is AxMsRdpClient7)
+                    {
+                        isHave = true;
+                        isDisposed = ((AxMsRdpClient7)control).IsDisposed;
+                        break;
+                    }
+                }
+                if (isDisposed || !isHave)
+                {
+                    list.Add(page);
+                }
+            }
+            foreach(var r in list)
+            {
+                this.tabControl.TabPages.Remove(r);
+            }
+        }
+        private bool RdpClient_OnConfirmClose(object sender, IMsTscAxEvents_OnConfirmCloseEvent e)
+        {
+            var rdpClient = sender as AxMsRdpClient7;
             rdpClient.Disconnect();
             rdpClient?.Parent.Dispose();
+            return true;
         }
+        #endregion
         #region 附加回主窗口
         public void AttachFromChild(string text, Control.ControlCollection collection)
         {
@@ -188,7 +279,7 @@ namespace 远程桌面管理器
             tabControl.TabPages.Add(page);
             page.ContextMenuStrip = menuTabPage;
             tabControl.SelectedTab = page;
-            page.AutoScroll = true;
+            //page.AutoScroll = true;
         }
         #endregion
         #region 页签控制
@@ -213,8 +304,8 @@ namespace 远程桌面管理器
             if(args.Leave)
             {
                 TabPage page = (TabPage)sender;
-                var form = new FullScreenForm { Text = page.Text, Width = 800, Height = 600 };
-                form.AutoScroll = true;
+                var form = new FullScreenForm { Text = page.Text, Width = this.tabControl.Width, Height = this.tabControl.Height };
+                //form.AutoScroll = true;
                 foreach (Control control in page.Controls)
                 {
                     form.Controls.Add(control);
@@ -225,7 +316,6 @@ namespace 远程桌面管理器
                 var screenPoint = PointToScreen(point);
                 form.Location = new Point(point.X - form.Width / 2, point.Y - SystemInformation.CaptionHeight / 2);
                 form.Show(this);
-                form.Activate();
             }
         }
         private void MainForm_MouseLeave(object sender, EventArgs e)
@@ -245,9 +335,11 @@ namespace 远程桌面管理器
             var page = tabControl.SelectedTab;
             foreach (var control in page.Controls)
             {
-                var rdpClient = control as wrapper::AxMSTSCLib.AxMsRdpClient;
+                var rdpClient = control as AxMsRdpClient7;
                 if (rdpClient != null)
                 {
+                    CreateNewFullScreenForm(page, rdpClient, page.Text);
+                    rdpClient.Dock = DockStyle.Fill;
                     rdpClient.FullScreen = true;
                 }
             }
@@ -256,8 +348,8 @@ namespace 远程桌面管理器
         private void 独立窗口ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var page = tabControl.SelectedTab;
-            var form = new FullScreenForm { Text = page.Text, Width = 800, Height = 600 };
-            form.AutoScroll = true;
+            var form = new FullScreenForm { Text = page.Text, Width = this.tabControl.Width, Height = this.tabControl.Height };
+            //form.AutoScroll = true;
             foreach (Control control in page.Controls)
             {
                 form.Controls.Add(control);
@@ -268,7 +360,6 @@ namespace 远程桌面管理器
             var screenPoint = PointToScreen(point);
             form.Location = new Point(point.X - form.Width / 2, point.Y - SystemInformation.CaptionHeight / 2);
             form.Show(this);
-            form.Activate();
         }
 
         private void tabControl_DoubleClick(object sender, EventArgs e)
@@ -283,9 +374,13 @@ namespace 远程桌面管理器
                     {
                         foreach (var control in page.Controls)
                         {
-                            var rdpClient = control as wrapper::AxMSTSCLib.AxMsRdpClient;
+                            var rdpClient = control as AxMsRdpClient7;
                             if (rdpClient != null)
+                            {
+                                CreateNewFullScreenForm(page, rdpClient, page.Text);
+                                rdpClient.Dock = DockStyle.Fill;
                                 rdpClient.FullScreen = true;
+                            }
                         }
                         break;
                     }
@@ -392,5 +487,18 @@ namespace 远程桌面管理器
             }
             LoadHostConfig();
         }
+        #region 生成新的全屏Form
+        private void CreateNewFullScreenForm(TabPage page, AxMsRdpClient7 rdpClient, string text)
+        {
+            var form = new FullScreenForm { Text = text, Width=tabControl.Width, Height=tabControl.Height };
+            //form.AutoScroll = true;
+            form.Controls.Add(rdpClient);
+            page.Dispose();
+            //form.FormBorderStyle = FormBorderStyle.None;
+            //form.WindowState = FormWindowState.Maximized;
+            form.Show(this);
+            form.SetFormFullScreen(true);
+        }
+        #endregion
     }
 }
