@@ -8,4 +8,5 @@
 ![image](https://github.com/ClockGet/RemoteDesktopManage/blob/master/4.png)
 
 3.拖动后如果鼠标坐标在TabControl的标签区域范围内，则交换两个标签位置，否则生成一个新的独立窗口
+
 4.独立窗口左上角图标点击后能重新附加到主窗口的TabControl中
