@@ -1,18 +1,18 @@
-﻿using System;
+﻿using AxMSTSCLib;
+using Dapper;
+using MSTSCLib;
+using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Windows.Forms;
-using AxMSTSCLib;
-using Dapper;
 using Wisder.W3Common.WMetroControl;
 using Wisder.W3Common.WMetroControl.Controls;
 using Wisder.W3Common.WMetroControl.Forms;
-using MSTSCLib;
-using System.Threading;
-using System.Diagnostics;
 
 namespace 远程桌面管理器
 {
@@ -140,8 +140,8 @@ namespace 远程桌面管理器
                 Height=Screen.PrimaryScreen.Bounds.Height
             };
             page.Controls.Add(rdpClient);
-            //rdpClient.DesktopWidth = Screen.PrimaryScreen.Bounds.Width;
-            //rdpClient.DesktopHeight = Screen.PrimaryScreen.Bounds.Height;
+            rdpClient.DesktopWidth = Screen.PrimaryScreen.Bounds.Width;
+            rdpClient.DesktopHeight = Screen.PrimaryScreen.Bounds.Height;
             //page.AutoScroll = true;
             rdpClient.Server = ipInfo.FIpAddress;
             rdpClient.UserName = ipInfo.FLoginUser;
@@ -195,6 +195,22 @@ namespace 远程桌面管理器
         private void RdpClient_OnRequestGoFullScreen(object sender, EventArgs e)
         {
             var rdpClient = (AxMsRdpClient7)sender;
+            new Thread(new ThreadStart(() => 
+            {
+                Thread.Sleep(1000);
+                int connectionBarPtr = 0;
+                connectionBarPtr = connectionBarPtr = User32.FindWindow("BBarWindowClass", "BBar");
+                if (connectionBarPtr != 0)
+                {
+                    RECT rect = new RECT();
+                    User32.GetWindowRect(new IntPtr(connectionBarPtr), ref rect);
+                    Debug.WriteLine($"the connection bar rectage is {rect.Left} {rect.Top} {rect.Right} {rect.Bottom}, IsVisible:{User32.IsWindowVisible(new IntPtr(connectionBarPtr))}");
+                }
+                else
+                {
+                    Debug.WriteLine("cannot find the connection bar handle");
+                }
+            })).Start();
         }
         /// <summary>
         /// 根据 https://github.com/meehi/ExtremeRemoteDesktopManager/blob/master/Extreme%20Remote%20Desktop%20Manager/Extreme%20Remote%20Desktop%20Manager/Helper/ConnectHelper.cs
@@ -304,13 +320,8 @@ namespace 远程桌面管理器
             if(args.Leave)
             {
                 TabPage page = (TabPage)sender;
-                var form = new FullScreenForm { Text = page.Text, Width = this.tabControl.Width, Height = this.tabControl.Height };
+                var form = CreateNewFullScreenForm(page);
                 //form.AutoScroll = true;
-                foreach (Control control in page.Controls)
-                {
-                    form.Controls.Add(control);
-                }
-                page.Dispose();
                 form.StartPosition = FormStartPosition.Manual;
                 var point = MousePosition;
                 var screenPoint = PointToScreen(point);
@@ -338,7 +349,9 @@ namespace 远程桌面管理器
                 var rdpClient = control as AxMsRdpClient7;
                 if (rdpClient != null)
                 {
-                    CreateNewFullScreenForm(page, rdpClient, page.Text);
+                    var form=CreateNewFullScreenForm(page);
+                    form.Show(this);
+                    form.SetFormFullScreen(true);
                     rdpClient.Dock = DockStyle.Fill;
                     rdpClient.FullScreen = true;
                 }
@@ -348,13 +361,8 @@ namespace 远程桌面管理器
         private void 独立窗口ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var page = tabControl.SelectedTab;
-            var form = new FullScreenForm { Text = page.Text, Width = this.tabControl.Width, Height = this.tabControl.Height };
+            var form = CreateNewFullScreenForm(page);
             //form.AutoScroll = true;
-            foreach (Control control in page.Controls)
-            {
-                form.Controls.Add(control);
-            }
-            page.Dispose();
             form.StartPosition = FormStartPosition.Manual;
             var point = MousePosition;
             var screenPoint = PointToScreen(point);
@@ -377,7 +385,9 @@ namespace 远程桌面管理器
                             var rdpClient = control as AxMsRdpClient7;
                             if (rdpClient != null)
                             {
-                                CreateNewFullScreenForm(page, rdpClient, page.Text);
+                                var form=CreateNewFullScreenForm(page);
+                                form.Show(this);
+                                form.SetFormFullScreen(true);
                                 rdpClient.Dock = DockStyle.Fill;
                                 rdpClient.FullScreen = true;
                             }
@@ -488,16 +498,31 @@ namespace 远程桌面管理器
             LoadHostConfig();
         }
         #region 生成新的全屏Form
-        private void CreateNewFullScreenForm(TabPage page, AxMsRdpClient7 rdpClient, string text)
+        /// <summary>
+        /// 由于设置了RdpClient的ContainerHandledFullScreen属性为1，ConnectionBar绑定到了第一次全屏时的父控件上，所以FullScreenForm控件要做到复用，
+        /// 解决RdpClient附加回主界面后再次最大化时生成了一个全新的FullScreenForm导致ConnectionBar消失的问题
+        /// </summary>
+        /// <param name="page"></param>
+        /// <returns></returns>
+        private FullScreenForm CreateNewFullScreenForm(TabPage page)
         {
-            var form = new FullScreenForm { Text = text, Width=tabControl.Width, Height=tabControl.Height };
+            var rdpClient = page.Controls[0];
+            FullScreenForm form = null;
+            if ((form = rdpClient.Tag as FullScreenForm) == null)
+            {
+                form = new FullScreenForm { Text = page.Text, Width = tabControl.Width, Height = tabControl.Height };
+                rdpClient.Tag = form;
+            }
             //form.AutoScroll = true;
+            //foreach (Control control in page.Controls)
+            //{
+            //    form.Controls.Add(control);
+            //}
             form.Controls.Add(rdpClient);
             page.Dispose();
             //form.FormBorderStyle = FormBorderStyle.None;
             //form.WindowState = FormWindowState.Maximized;
-            form.Show(this);
-            form.SetFormFullScreen(true);
+            return form;
         }
         #endregion
     }

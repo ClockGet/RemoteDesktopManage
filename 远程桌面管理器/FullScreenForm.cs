@@ -38,9 +38,9 @@ namespace 远程桌面管理器
             {
                 //ShowWindow(hwnd, SW_HIDE);//隐藏任务栏
 
-                SystemParametersInfo(SPI_GETWORKAREA, 0, ref rectOld, SPIF_UPDATEINIFILE);//get  屏幕范围
+                User32.SystemParametersInfo(User32.SPI_GETWORKAREA, 0, ref rectOld, User32.SPIF_UPDATEINIFILE);//get  屏幕范围
                 Rectangle rectFull = Screen.PrimaryScreen.Bounds;//全屏范围
-                SystemParametersInfo(SPI_SETWORKAREA, 0, ref rectFull, SPIF_UPDATEINIFILE);//窗体全屏幕显示
+                User32.SystemParametersInfo(User32.SPI_SETWORKAREA, 0, ref rectFull, User32.SPIF_UPDATEINIFILE);//窗体全屏幕显示
 
                 this.FormBorderStyle = FormBorderStyle.None;
                 this.WindowState = FormWindowState.Maximized;
@@ -52,27 +52,10 @@ namespace 远程桌面管理器
 
                 //ShowWindow(hwnd, SW_SHOW);//显示任务栏
 
-                SystemParametersInfo(SPI_SETWORKAREA, 0, ref rectOld, SPIF_UPDATEINIFILE);//窗体还原
+                User32.SystemParametersInfo(User32.SPI_SETWORKAREA, 0, ref rectOld, User32.SPIF_UPDATEINIFILE);//窗体还原
             }
             return true;
         }
-
-        #region user32.dll
-
-        [DllImport("user32.dll", EntryPoint = "ShowWindow")]
-        public static extern Int32 ShowWindow(Int32 hwnd, Int32 nCmdShow);
-        public const Int32 SW_SHOW = 5; public const Int32 SW_HIDE = 0;
-
-        [DllImport("user32.dll", EntryPoint = "SystemParametersInfo")]
-        private static extern Int32 SystemParametersInfo(Int32 uAction, Int32 uParam, ref Rectangle lpvParam, Int32 fuWinIni);
-        public const Int32 SPIF_UPDATEINIFILE = 0x1;
-        public const Int32 SPI_SETWORKAREA = 47;
-        public const Int32 SPI_GETWORKAREA = 48;
-
-        [DllImport("user32.dll", EntryPoint = "FindWindow")]
-        private static extern Int32 FindWindow(string lpClassName, string lpWindowName);
-
-        #endregion
         protected override void WndProc(ref Message m)
         {
             if (m.Msg == WM_NCLBUTTONDBLCLK)
@@ -83,7 +66,7 @@ namespace 远程桌面管理器
                 {
                     if (control is AxMsRdpClient7)
                     {
-                        ((AxMsRdpClient7)control).FullScreen = true;
+                        ((AxMsRdpClient7)control).FullScreen = m_IsFullScreen;
                         break;
                     }
                 }
@@ -100,8 +83,7 @@ namespace 远程桌面管理器
                     {
                         mainForm.AttachFromChild(this.Text, this.Controls);
                     }
-                    this.Controls.Clear();
-                    this.Close();
+                    this.Hide();
                     return;
                 }
             }
